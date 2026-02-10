@@ -6,7 +6,7 @@ export const colors = {
   primaryLight: '#818CF8', // Lighter indigo
   
   // Secondary colors
-  secondary: '#3c364bff',    // Purple
+  secondary: '#3c364b',    // Purple (Fixed: removed trailing ff)
   secondaryDark: '#7C3AED',
   secondaryLight: '#A78BFA',
   
@@ -14,7 +14,7 @@ export const colors = {
   success: '#10B981',      // Green
   error: '#EF4444',        // Red
   warning: '#F59E0B',      // Amber
-  info: '#a5c2f0ff',         // Blue
+  info: '#a5c2f0',         // Blue (Fixed: removed trailing ff)
   
   // Neutral colors
   background: '#F9FAFB',   // Light gray
@@ -25,8 +25,8 @@ export const colors = {
   border: '#E5E7EB',       // Light border
   
   // Gradient colors
-  gradientStart: '#0e0e0fff',
-  gradientEnd: '#0d0918ff',
+  gradientStart: '#0e0e0f', // Fixed: removed trailing ff
+  gradientEnd: '#0d0918',   // Fixed: removed trailing ff
 };
 
 export default colors;

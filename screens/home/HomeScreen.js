@@ -124,6 +124,45 @@ export default function HomeScreen({ navigation }) {
           </View>
         </View>
 
+        {/* Role-Based Navigation */}
+        <View style={styles.navigationSection}>
+          <Text style={styles.sectionTitle}>Quick Access</Text>
+          
+          {user.role === 'provider' && (
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => navigation.navigate('ProviderDashboard')}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.secondary]}
+                style={styles.navGradient}
+              >
+                <MaterialCommunityIcons name="briefcase" size={32} color={colors.surface} />
+                <Text style={styles.navTitle}>Provider Dashboard</Text>
+                <Text style={styles.navSubtitle}>Manage your services and requests</Text>
+                <MaterialCommunityIcons name="arrow-right" size={24} color={colors.surface} style={styles.navArrow} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+
+          {user.role === 'consumer' && (
+            <TouchableOpacity
+              style={styles.navCard}
+              onPress={() => navigation.navigate('ConsumerDashboard')}
+            >
+              <LinearGradient
+                colors={[colors.info, '#3b82f6']}
+                style={styles.navGradient}
+              >
+                <MaterialCommunityIcons name="shopping" size={32} color={colors.surface} />
+                <Text style={styles.navTitle}>Consumer Dashboard</Text>
+                <Text style={styles.navSubtitle}>Browse and request services</Text>
+                <MaterialCommunityIcons name="arrow-right" size={24} color={colors.surface} style={styles.navArrow} />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Logout Button */}
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
           <LinearGradient
@@ -239,6 +278,44 @@ const styles = StyleSheet.create({
   },
   roleAdmin: {
     backgroundColor: colors.error,
+  },
+  navigationSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  navCard: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  navGradient: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  navTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: colors.surface,
+    marginTop: 12,
+  },
+  navSubtitle: {
+    fontSize: 14,
+    color: colors.surface,
+    opacity: 0.9,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  navArrow: {
+    marginTop: 12,
   },
   logoutButton: {
     borderRadius: 12,
