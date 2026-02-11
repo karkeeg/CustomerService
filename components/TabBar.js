@@ -37,7 +37,7 @@ export default function TabBar({ activeTab, onTabChange }) {
                     color={isActive ? colors.surface : colors.textSecondary}
                   />
                 </LinearGradient>
-                {isActive && <Text style={styles.centerLabel}>{tab.label}</Text>}
+                <Text style={styles.centerLabel}>{tab.label}</Text>
               </TouchableOpacity>
             );
           }

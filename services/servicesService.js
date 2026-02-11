@@ -96,6 +96,15 @@ const servicesService = {
       throw error.response?.data || error;
     }
   },
+
+  getCategories: async () => {
+    try {
+      const response = await api.get('/categories');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error;
+    }
+  },
 };
 
 export default servicesService;

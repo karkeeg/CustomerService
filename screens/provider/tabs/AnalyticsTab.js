@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import useRequestsStore from '../../../store/requestsStore';
+import useAuthStore from '../../../store/authStore';
 
 export default function AnalyticsTab() {
   const requests = useRequestsStore((state) => state.requests);
@@ -35,6 +36,20 @@ export default function AnalyticsTab() {
   const avgEarningsPerRequest = completedRequests > 0
     ? (totalEarnings / completedRequests).toFixed(0)
     : 0;
+
+  const { user } = useAuthStore();
+
+  if (!user?.isApproved) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <MaterialCommunityIcons name="chart-box-outline" size={64} color={colors.textSecondary} />
+        <Text style={styles.emptyText}>Analytics Unavailable</Text>
+        <Text style={styles.emptySubtext}>
+          Analytics will be available once your account is verified and you start completing requests.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
@@ -153,6 +168,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: 16,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 8,
+    maxWidth: 300,
   },
   section: {
     padding: 16,

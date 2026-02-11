@@ -13,6 +13,7 @@ import ForgotPassword from './screens/auth/ForgotPassword';
 // Provider Screens
 import ProviderDashboardScreen from './screens/provider/ProviderDashboardScreen';
 import ServiceFormScreen from './screens/provider/ServiceFormScreen';
+import EditProfileScreen from './screens/common/EditProfileScreen';
 
 // Consumer Screens
 import ConsumerDashboardScreen from './screens/consumer/ConsumerDashboardScreen';
@@ -62,6 +63,9 @@ export default function App() {
                 <Stack.Screen name="ConsumerDashboard" component={ConsumerDashboardScreen} />
                 <Stack.Screen name="BrowseServices" component={BrowseServicesScreen} />
                 <Stack.Screen name="MyRequests" component={MyRequestsScreen} />
+                
+                {/* Common Authenticated Screens */}
+                <Stack.Screen name="EditProfile" component={EditProfileScreen} />
               </>
             ) : (
               // Auth Stack

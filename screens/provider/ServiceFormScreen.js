@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  FlatList,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,7 +22,7 @@ export default function ServiceFormScreen({ route, navigation }) {
   const { service } = route.params || {};
   const isEditing = !!service;
 
-  const { createService, updateService } = useServicesStore();
+  const { createService, updateService, fetchCategories, categories } = useServicesStore();
 
   const [formData, setFormData] = useState({
     title: service?.title || '',
@@ -29,6 +32,23 @@ export default function ServiceFormScreen({ route, navigation }) {
   });
 
   const [errors, setErrors] = useState({});
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [filteredCategories, setFilteredCategories] = useState([]);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (formData.category) {
+      const filtered = categories.filter(c => 
+        c.category_name.toLowerCase().includes(formData.category.toLowerCase())
+      );
+      setFilteredCategories(filtered);
+    } else {
+      setFilteredCategories(categories);
+    }
+  }, [formData.category, categories]);
 
   const validate = () => {
     const newErrors = {};
@@ -74,8 +94,26 @@ export default function ServiceFormScreen({ route, navigation }) {
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } else {
-      Alert.alert('Error', result.error?.error || 'Failed to save service');
+      const errorObj = result.error;
+      const errorMessage = errorObj?.error || errorObj?.message || (typeof errorObj === 'string' ? errorObj : 'Failed to save service');
+      
+      console.log('Service creation error:', errorObj); // Debug log
+
+      if (errorMessage.toLowerCase().includes('pending approval')) {
+        Alert.alert(
+          'Account Pending',
+          'Your provider account is currently pending approval. You cannot create services until your account is approved.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     }
+  };
+
+  const selectCategory = (categoryName) => {
+    setFormData({ ...formData, category: categoryName });
+    setShowCategoryDropdown(false);
   };
 
   return (
@@ -98,7 +136,7 @@ export default function ServiceFormScreen({ route, navigation }) {
         </View>
       </LinearGradient>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Service Title *</Text>
@@ -139,15 +177,46 @@ export default function ServiceFormScreen({ route, navigation }) {
             {errors.price && <Text style={styles.errorText}>{errors.price}</Text>}
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, { zIndex: 10 }]}>
             <Text style={styles.label}>Category *</Text>
-            <TextInput
-              style={[styles.input, errors.category && styles.inputError]}
-              value={formData.category}
-              onChangeText={(text) => setFormData({ ...formData, category: text })}
-              placeholder="e.g., Home Services"
-              placeholderTextColor={colors.textSecondary}
-            />
+            <View>
+              <TextInput
+                style={[styles.input, errors.category && styles.inputError]}
+                value={formData.category}
+                onChangeText={(text) => {
+                  setFormData({ ...formData, category: text });
+                  setShowCategoryDropdown(true);
+                }}
+                onFocus={() => setShowCategoryDropdown(true)}
+                placeholder="Select or type new category"
+                placeholderTextColor={colors.textSecondary}
+              />
+              {showCategoryDropdown && (formData.category.length > 0 || categories.length > 0) && (
+                <View style={styles.dropdown}>
+                  <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: 150 }}>
+                    {filteredCategories.map((item) => (
+                      <TouchableOpacity
+                        key={item._id}
+                        style={styles.dropdownItem}
+                        onPress={() => selectCategory(item.category_name)}
+                      >
+                        <Text style={styles.dropdownText}>{item.category_name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {formData.category.length > 0 && !filteredCategories.find(c => c.category_name.toLowerCase() === formData.category.toLowerCase()) && (
+                      <TouchableOpacity
+                        style={styles.dropdownItem}
+                        onPress={() => selectCategory(formData.category)}
+                      >
+                        <Text style={[styles.dropdownText, { color: colors.primary, fontWeight: 'bold' }]}>
+                          Create "{formData.category}"
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
             {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
           </View>
 
@@ -246,5 +315,31 @@ const styles = StyleSheet.create({
     color: colors.surface,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 4,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+  },
+  dropdownItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border + '40',
+  },
+  dropdownText: {
+    fontSize: 16,
+    color: colors.text,
   },
 });

@@ -12,6 +12,7 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import useRequestsStore from '../../../store/requestsStore';
+import useAuthStore from '../../../store/authStore';
 import RequestCard from '../../../components/RequestCard';
 
 export default function RequestsTab() {
@@ -111,6 +112,22 @@ export default function RequestsTab() {
   );
 
   const filters = ['', 'pending', 'accepted', 'completed', 'cancelled'];
+
+  const { user } = useAuthStore();
+
+  if (!user?.isApproved) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.emptyContainer}>
+          <MaterialCommunityIcons name="shield-alert-outline" size={64} color={colors.warning} />
+          <Text style={styles.emptyText}>Account Pending Approval</Text>
+          <Text style={styles.emptySubtext}>
+            You cannot view or manage requests until your account is approved by the administrator.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

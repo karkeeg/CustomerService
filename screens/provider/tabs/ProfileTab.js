@@ -40,7 +40,7 @@ export default function ProfileTab({ navigation }) {
     {
       title: 'Account',
       items: [
-        { icon: 'account-edit', label: 'Edit Profile', onPress: () => {} },
+        { icon: 'account-edit', label: 'Edit Profile', onPress: () => navigation.navigate('EditProfile') },
         { icon: 'briefcase', label: 'Service Categories', onPress: () => {} },
         { icon: 'map-marker', label: 'Location', onPress: () => {} },
       ],
@@ -78,9 +78,15 @@ export default function ProfileTab({ navigation }) {
         <Text style={styles.name}>{user?.user || 'Provider'}</Text>
         <Text style={styles.email}>{user?.email || 'provider@example.com'}</Text>
         
-        <View style={styles.roleBadge}>
-          <MaterialCommunityIcons name="briefcase" size={14} color={colors.primary} />
-          <Text style={styles.roleBadgeText}>Provider</Text>
+        <View style={[styles.roleBadge, !user?.isApproved && styles.pendingBadge]}>
+          <MaterialCommunityIcons 
+            name={user?.isApproved ? "check-decagram" : "clock-outline"} 
+            size={14} 
+            color={user?.isApproved ? colors.primary : colors.warning} 
+          />
+          <Text style={[styles.roleBadgeText, !user?.isApproved && styles.pendingBadgeText]}>
+            {user?.isApproved ? "Verified Provider" : "Pending Approval"}
+          </Text>
         </View>
       </View>
 
@@ -211,6 +217,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     color: colors.primary,
+  },
+  pendingBadge: {
+    backgroundColor: `${colors.warning}26`,
+  },
+  pendingBadgeText: {
+    color: colors.warning,
   },
   statsContainer: {
     flexDirection: 'row',

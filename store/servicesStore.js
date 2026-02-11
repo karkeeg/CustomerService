@@ -22,6 +22,7 @@ const useServicesStore = create((set, get) => ({
   },
   searchQuery: '',
   categoryFilter: '',
+  categories: [],
   isLoading: false,
   error: null,
 
@@ -55,6 +56,18 @@ const useServicesStore = create((set, get) => ({
       await AsyncStorage.setItem('cached_services', JSON.stringify(newServices));
     } catch (error) {
       set({ error: error.error || 'Failed to fetch services', isLoading: false });
+    }
+  },
+
+  /**
+   * Fetch all categories
+   */
+  fetchCategories: async () => {
+    try {
+      const categories = await servicesService.getCategories();
+      set({ categories });
+    } catch (error) {
+      console.error('Failed to fetch categories:', error);
     }
   },
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Text } from 'react-native';
+import useAuthStore from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
 import ProviderHeader from '../../components/ProviderHeader';
@@ -54,7 +55,8 @@ export default function ProviderDashboardScreen({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+
+    <View style={styles.container}>
       <ProviderHeader
         title={getTabTitle()}
         onNotificationPress={handleNotificationPress}
@@ -66,7 +68,8 @@ export default function ProviderDashboardScreen({ navigation }) {
       </View>
 
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-    </SafeAreaView>
+     </View>
+    
   );
 }
 
@@ -74,6 +77,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+    // paddingTop: 20,
   },
   content: {
     flex: 1,

@@ -3,8 +3,8 @@ export const config = {
   // API Configuration
   // IMPORTANT: Replace with your local IP address
   // Find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
-  // API_URL: 'http://192.168.1.64:5000/api', // Your backend IP
-  API_URL: 'http://192.168.1.66:5000/api', // Your backend IP
+  API_URL: 'http://192.168.1.64:5000/api', // Your backend IP
+  // API_URL: 'http://192.168.1.66:5000/api', // Your backend IP
   
   // App Information
   APP_NAME: 'Customer Service',

@@ -53,8 +53,15 @@ export default function ConsumerDashboardScreen({ navigation }) {
         colors={[colors.gradientStart, colors.gradientEnd]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Consumer Dashboard</Text>
-        <Text style={styles.headerSubtitle}>Welcome, {user?.user}!</Text>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Consumer Dashboard</Text>
+            <Text style={styles.headerSubtitle}>Welcome, {user?.user}!</Text>
+          </View>
+          <TouchableOpacity onPress={() => useAuthStore.getState().logout()} style={styles.logoutButton}>
+            <MaterialCommunityIcons name="logout" size={24} color={colors.surface} />
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       <ScrollView
@@ -178,6 +185,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.surface,
     opacity: 0.9,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  logoutButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   content: {
     flex: 1,
