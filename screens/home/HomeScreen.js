@@ -12,9 +12,10 @@ export default function HomeScreen({ navigation }) {
         navigation.replace('ProviderDashboard');
       } else if (user.role === 'consumer') {
         navigation.replace('ConsumerDashboard');
+      } else if (user.role === 'admin') {
+        navigation.replace('AdminDashboard');
       } else {
-        // Fallback or Admin handling if needed
-        // For now, just stay here or show an error
+        // Fallback handling
         console.warn('Unknown user role:', user.role);
       }
     }

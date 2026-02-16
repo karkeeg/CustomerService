@@ -43,6 +43,27 @@ export const authService = {
   },
 
   /**
+   * Login with Google
+   * @param {Object} googleData - Data from Google OAuth
+   * @returns {Promise} Login response
+   */
+  googleLogin: async (googleData) => {
+    try {
+      const response = await api.post('/auth/google-login', googleData);
+      
+      // Store token and user data
+      if (response.data.token) {
+        await AsyncStorage.setItem('token', response.data.token);
+        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+      }
+      
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
    * Logout user
    * Clears token and user data from storage
    */
@@ -90,6 +111,40 @@ export const authService = {
   forgotPassword: async (email) => {
     try {
       const response = await api.post('/auth/forgotPassword', { email });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Get fresh profile data from server
+   * @returns {Promise<Object>} Fresh user object
+   */
+  getProfile: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      if (response.data) {
+        await AsyncStorage.setItem('user', JSON.stringify(response.data));
+      }
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  /**
+   * Update user details
+   * @param {string} userId - User ID
+   * @param {Object} userData - Data to update
+   * @returns {Promise<Object>} Updated user object
+   */
+  updateUser: async (userId, userData) => {
+    try {
+      const response = await api.put(`/auth/updateUser/${userId}`, userData);
+      if (response.data.user) {
+        await AsyncStorage.setItem('user', JSON.stringify(response.data.user));
+      }
       return response.data;
     } catch (error) {
       throw error;

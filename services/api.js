@@ -49,7 +49,7 @@ api.interceptors.response.use(
       return Promise.reject(data.error || 'Something went wrong');
     } else if (error.request) {
       // Request made but no response
-      return Promise.reject('Network error. Please check your connection.');
+      return Promise.reject(`Network error connecting to ${error.config?.baseURL || 'server'}. Please check your connection.`);
     } else {
       // Something else happened
       return Promise.reject(error.message || 'An error occurred');

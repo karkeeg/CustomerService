@@ -12,6 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import useServicesStore from '../../../store/servicesStore';
 import useRequestsStore from '../../../store/requestsStore';
+import useAuthStore from '../../../store/authStore';
 import ServiceCard from '../../../components/ServiceCard';
 
 export default function HomeTab({ navigation }) {
@@ -19,6 +20,7 @@ export default function HomeTab({ navigation }) {
   const requests = useRequestsStore((state) => state.requests);
   const fetchProviderServices = useServicesStore((state) => state.fetchProviderServices);
   const fetchProviderRequests = useRequestsStore((state) => state.fetchProviderRequests);
+  const refreshUser = useAuthStore((state) => state.refreshUser);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -30,6 +32,7 @@ export default function HomeTab({ navigation }) {
     await Promise.all([
       fetchProviderServices(1),
       fetchProviderRequests(1),
+      refreshUser(),
     ]);
   };
 

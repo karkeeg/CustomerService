@@ -4,7 +4,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../constants/colors';
 
-export default function ProviderHeader({ title, onNotificationPress, notificationCount = 0 }) {
+import { useNavigation } from '@react-navigation/native';
+import useNotificationStore from '../store/notificationStore';
+
+export default function AppHeader({ title }) {
+  const navigation = useNavigation();
+  const { unreadCount, fetchNotifications } = useNotificationStore();
+
+  React.useEffect(() => {
+    fetchNotifications();
+    // Poll for notifications every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <LinearGradient
       colors={[colors.gradientStart, colors.gradientEnd]}
@@ -15,14 +28,14 @@ export default function ProviderHeader({ title, onNotificationPress, notificatio
         
         <TouchableOpacity
           style={styles.notificationButton}
-          onPress={onNotificationPress}
+          onPress={() => navigation.navigate('Notifications')}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="bell-outline" size={24} color={colors.surface} />
-          {notificationCount > 0 && (
+          {unreadCount > 0 && (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>
-                {notificationCount > 9 ? '9+' : notificationCount}
+                {unreadCount > 9 ? '9+' : unreadCount}
               </Text>
             </View>
           )}

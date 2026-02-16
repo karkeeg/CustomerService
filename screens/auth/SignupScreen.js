@@ -17,10 +17,15 @@ import Button from '../../components/Button';
 import colors from '../../constants/colors';
 import config from '../../constants/config';
 import authService from '../../services/authService';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import useAuthStore from '../../store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen({ navigation }) {
+  const googleLogin = useAuthStore((state) => state.googleLogin);
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -30,6 +35,41 @@ export default function SignupScreen({ navigation }) {
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: config.GOOGLE_CLIENT_ID,
+    iosClientId: config.GOOGLE_CLIENT_ID,
+    webClientId: config.GOOGLE_CLIENT_ID,
+    redirectUri: Google.makeRedirectUri({
+      scheme: 'customer-service',
+    }),
+  });
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      handleGoogleSignup(authentication);
+    }
+  }, [response]);
+
+  const handleGoogleSignup = async (authentication) => {
+    setLoading(true);
+    try {
+      const result = await googleLogin({
+        idToken: authentication.idToken,
+        role: formData.role, // Pass the selected role from the picker
+      });
+
+      if (!result.success) {
+        Alert.alert('Google Signup Failed', result.error || 'An error occurred');
+      }
+    } catch (error) {
+      console.error('Google Signup Error:', error);
+      Alert.alert('Google Signup Failed', 'An error occurred during Google sign up');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Update form field
   const updateField = (field, value) => {
@@ -210,6 +250,21 @@ export default function SignupScreen({ navigation }) {
             loading={loading}
           />
 
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => promptAsync()}
+            disabled={!request || loading}
+          >
+            <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.loginContainer}
             onPress={() => navigation.navigate('Login')}
@@ -315,5 +370,37 @@ const styles = StyleSheet.create({
   loginLink: {
     color: colors.primary,
     fontWeight: 'bold',
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: colors.textSecondary,
+    fontSize: 14,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

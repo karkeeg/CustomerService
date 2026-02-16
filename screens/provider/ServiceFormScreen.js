@@ -12,11 +12,16 @@ import {
   FlatList,
   Modal,
   TouchableWithoutFeedback,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../../constants/colors';
 import useServicesStore from '../../store/servicesStore';
+
+import * as ImagePicker from 'expo-image-picker';
+import mediaService from '../../services/mediaService';
 
 export default function ServiceFormScreen({ route, navigation }) {
   const { service } = route.params || {};
@@ -31,24 +36,57 @@ export default function ServiceFormScreen({ route, navigation }) {
     category: service?.category || '',
   });
 
+  const [images, setImages] = useState(service?.images || []);
+  const [newImageUris, setNewImageUris] = useState([]);
+  const [isUploading, setIsUploading] = useState(false);
   const [errors, setErrors] = useState({});
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [filteredCategories, setFilteredCategories] = useState([]);
+  const [selectedCategoryData, setSelectedCategoryData] = useState(null);
 
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  useEffect(() => {
-    if (formData.category) {
-      const filtered = categories.filter(c => 
-        c.category_name.toLowerCase().includes(formData.category.toLowerCase())
-      );
-      setFilteredCategories(filtered);
-    } else {
-      setFilteredCategories(categories);
+  const handleImagePick = async () => {
+    try {
+      if (images.length + newImageUris.length >= 5) {
+        Alert.alert('Limit Reached', 'You can only upload up to 5 images per service.');
+        return;
+      }
+
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need camera roll permissions to upload images.');
+        return;
+      }
+
+      console.log('Launching Image Picker...');
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsMultipleSelection: true,
+        selectionLimit: 5 - (images.length + newImageUris.length),
+        quality: 0.6,
+      });
+      console.log('Image Picker Result:', result ? 'Success' : 'Failed');
+
+      if (!result.canceled) {
+        const selectedUris = result.assets.map(asset => asset.uri);
+        setNewImageUris([...newImageUris, ...selectedUris]);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image: ' + error.message);
     }
-  }, [formData.category, categories]);
+  };
+
+  const removeImage = (index, isNew = false) => {
+    if (isNew) {
+      setNewImageUris(newImageUris.filter((_, i) => i !== index));
+    } else {
+      setImages(images.filter((_, i) => i !== index));
+    }
+  };
 
   const validate = () => {
     const newErrors = {};
@@ -59,9 +97,16 @@ export default function ServiceFormScreen({ route, navigation }) {
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
     }
-    if (!formData.price || isNaN(formData.price) || Number(formData.price) <= 0) {
+    
+    const priceValue = Number(formData.price);
+    if (!formData.price || isNaN(formData.price) || priceValue <= 0) {
       newErrors.price = 'Valid price is required';
+    } else if (selectedCategoryData) {
+      if (priceValue < selectedCategoryData.minPrice || priceValue > selectedCategoryData.maxPrice) {
+        newErrors.price = `Price must be between Rs.${selectedCategoryData.minPrice} and Rs.${selectedCategoryData.maxPrice}`;
+      }
     }
+
     if (!formData.category.trim()) {
       newErrors.category = 'Category is required';
     }
@@ -75,44 +120,60 @@ export default function ServiceFormScreen({ route, navigation }) {
       return;
     }
 
-    const serviceData = {
-      ...formData,
-      price: Number(formData.price),
-    };
+    setIsUploading(true);
+    let finalImages = [...images];
 
-    let result;
-    if (isEditing) {
-      result = await updateService(service._id, serviceData);
-    } else {
-      result = await createService(serviceData);
-    }
+    try {
+      // Upload new images if any
+      if (newImageUris.length > 0) {
+        const uploadResult = await mediaService.uploadMultiple(newImageUris);
+        finalImages = [...finalImages, ...uploadResult.images.map(img => img.url)];
+      }
 
-    if (result.success) {
-      Alert.alert(
-        'Success',
-        `Service ${isEditing ? 'updated' : 'created'} successfully`,
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-    } else {
-      const errorObj = result.error;
-      const errorMessage = errorObj?.error || errorObj?.message || (typeof errorObj === 'string' ? errorObj : 'Failed to save service');
-      
-      console.log('Service creation error:', errorObj); // Debug log
+      const serviceData = {
+        ...formData,
+        price: Number(formData.price),
+        images: finalImages,
+      };
 
-      if (errorMessage.toLowerCase().includes('pending approval')) {
+      let result;
+      if (isEditing) {
+        result = await updateService(service._id, serviceData);
+      } else {
+        result = await createService(serviceData);
+      }
+
+      if (result.success) {
         Alert.alert(
-          'Account Pending',
-          'Your provider account is currently pending approval. You cannot create services until your account is approved.',
-          [{ text: 'OK' }]
+          'Success',
+          `Service ${isEditing ? 'updated' : 'created'} successfully`,
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
         );
       } else {
-        Alert.alert('Error', errorMessage);
+        const errorObj = result.error;
+        const errorMessage = errorObj?.error || errorObj?.message || (typeof errorObj === 'string' ? errorObj : 'Failed to save service');
+        
+        if (errorMessage.toLowerCase().includes('pending approval')) {
+          Alert.alert(
+            'Account Pending',
+            'Your provider account is currently pending approval. You cannot create services until your account is approved.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          Alert.alert('Error', errorMessage);
+        }
       }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to upload images. Please try again.');
+      console.error(error);
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const selectCategory = (categoryName) => {
-    setFormData({ ...formData, category: categoryName });
+  const selectCategory = (cat) => {
+    setFormData({ ...formData, category: cat.category_name });
+    setSelectedCategoryData(cat);
     setShowCategoryDropdown(false);
   };
 
@@ -165,16 +226,44 @@ export default function ServiceFormScreen({ route, navigation }) {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Price (Rs.) *</Text>
+            <Text style={styles.label}>Price (NPR) *</Text>
             <TextInput
               style={[styles.input, errors.price && styles.inputError]}
               value={formData.price}
               onChangeText={(text) => setFormData({ ...formData, price: text })}
-              placeholder="e.g., 500"
+              placeholder="e.g. 1500"
               placeholderTextColor={colors.textSecondary}
               keyboardType="numeric"
             />
             {errors.price && <Text style={styles.errorText}>{errors.price}</Text>}
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Service Images (Max 5)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageGallery}>
+              {images.map((uri, index) => (
+                <View key={`old-${index}`} style={styles.imageWrapper}>
+                  <Image source={{ uri }} style={styles.previewImage} />
+                  <TouchableOpacity style={styles.removeImage} onPress={() => removeImage(index, false)}>
+                    <MaterialCommunityIcons name="close-circle" size={24} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {newImageUris.map((uri, index) => (
+                <View key={`new-${index}`} style={styles.imageWrapper}>
+                  <Image source={{ uri }} style={styles.previewImage} />
+                  <TouchableOpacity style={styles.removeImage} onPress={() => removeImage(index, true)}>
+                    <MaterialCommunityIcons name="close-circle" size={24} color={colors.error} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {(images.length + newImageUris.length < 5) && (
+                <TouchableOpacity style={styles.addImage} onPress={handleImagePick}>
+                  <MaterialCommunityIcons name="camera-plus" size={32} color={colors.primary} />
+                  <Text style={styles.addImageText}>Add</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
           </View>
 
           <View style={[styles.inputGroup, { zIndex: 10 }]}>
@@ -198,15 +287,20 @@ export default function ServiceFormScreen({ route, navigation }) {
                       <TouchableOpacity
                         key={item._id}
                         style={styles.dropdownItem}
-                        onPress={() => selectCategory(item.category_name)}
+                        onPress={() => selectCategory(item)}
                       >
-                        <Text style={styles.dropdownText}>{item.category_name}</Text>
+                        <View>
+                          <Text style={styles.dropdownText}>{item.category_name}</Text>
+                          <Text style={styles.dropdownHint}>
+                            (Rs.{item.minPrice} - Rs.{item.maxPrice})
+                          </Text>
+                        </View>
                       </TouchableOpacity>
                     ))}
                     {formData.category.length > 0 && !filteredCategories.find(c => c.category_name.toLowerCase() === formData.category.toLowerCase()) && (
                       <TouchableOpacity
                         style={styles.dropdownItem}
-                        onPress={() => selectCategory(formData.category)}
+                        onPress={() => selectCategory({ category_name: formData.category, minPrice: 0, maxPrice: 1000000 })}
                       >
                         <Text style={[styles.dropdownText, { color: colors.primary, fontWeight: 'bold' }]}>
                           Create "{formData.category}"
@@ -220,13 +314,20 @@ export default function ServiceFormScreen({ route, navigation }) {
             {errors.category && <Text style={styles.errorText}>{errors.category}</Text>}
           </View>
 
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <TouchableOpacity 
+            style={[styles.submitButton, isUploading && styles.submitButtonDisabled]} 
+            onPress={handleSubmit}
+            disabled={isUploading}
+          >
             <LinearGradient
-              colors={[colors.primary, colors.secondary]}
+              colors={isUploading ? [colors.textLight, colors.textLight] : [colors.primary, colors.secondary]}
               style={styles.submitGradient}
             >
+              {isUploading ? (
+                <ActivityIndicator color={colors.surface} size="small" />
+              ) : null}
               <Text style={styles.submitText}>
-                {isEditing ? 'Update Service' : 'Create Service'}
+                {isUploading ? 'Processing...' : (isEditing ? 'Update Service' : 'Create Service')}
               </Text>
             </LinearGradient>
           </TouchableOpacity>
@@ -302,6 +403,44 @@ const styles = StyleSheet.create({
     color: colors.error,
     marginTop: 4,
   },
+  imageGallery: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  imageWrapper: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  previewImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    backgroundColor: colors.border,
+  },
+  removeImage: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+  },
+  addImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary + '10',
+  },
+  addImageText: {
+    fontSize: 12,
+    color: colors.primary,
+    fontWeight: '600',
+    marginTop: 4,
+  },
   submitButton: {
     borderRadius: 12,
     overflow: 'hidden',
@@ -309,12 +448,18 @@ const styles = StyleSheet.create({
   },
   submitGradient: {
     paddingVertical: 16,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   submitText: {
     color: colors.surface,
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
   dropdown: {
     position: 'absolute',
@@ -341,5 +486,16 @@ const styles = StyleSheet.create({
   dropdownText: {
     fontSize: 16,
     color: colors.text,
+  },
+  dropdownHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  hintText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+    fontStyle: 'italic',
   },
 });

@@ -8,8 +8,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
+  ActivityIndicator,
   Alert,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import mediaService from '../../services/mediaService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,10 +21,44 @@ import colors from '../../constants/colors';
 import useAuthStore from '../../store/authStore';
 
 export default function EditProfileScreen({ navigation }) {
-  const { user, updateUser } = useAuthStore();
+  const { user, updateUser, updateProfileImage } = useAuthStore();
   const [name, setName] = useState(user?.user || '');
   const [email, setEmail] = useState(user?.email || '');
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleImagePick = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera roll permissions to upload profile pictures.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setIsUploading(true);
+      try {
+        const uploadResult = await mediaService.uploadSingle(result.assets[0].uri);
+        const updateResult = await updateProfileImage(uploadResult.url);
+        
+        if (updateResult.success) {
+          Alert.alert('Success', 'Profile picture updated successfully');
+        } else {
+          Alert.alert('Error', updateResult.error || 'Failed to update profile');
+        }
+      } catch (error) {
+        Alert.alert('Error', error.toString());
+      } finally {
+        setIsUploading(false);
+      }
+    }
+  };
 
   const handleSave = async () => {
     if (!name.trim() || !email.trim()) {
@@ -69,11 +107,24 @@ export default function EditProfileScreen({ navigation }) {
               colors={[colors.primary, colors.secondary]}
               style={styles.avatar}
             >
-              <Text style={styles.avatarText}>
-                {name.charAt(0).toUpperCase() || 'U'}
-              </Text>
+              {user?.profileImage ? (
+                <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarText}>
+                  {name.charAt(0).toUpperCase() || 'U'}
+                </Text>
+              )}
+              {isUploading && (
+                <View style={styles.uploadOverlay}>
+                  <ActivityIndicator color={colors.surface} />
+                </View>
+              )}
             </LinearGradient>
-            <TouchableOpacity style={styles.changeAvatarButton}>
+            <TouchableOpacity 
+              style={styles.changeAvatarButton} 
+              onPress={handleImagePick}
+              disabled={isUploading}
+            >
               <MaterialCommunityIcons name="camera" size={20} color={colors.primary} />
             </TouchableOpacity>
           </View>
@@ -189,6 +240,18 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: 'bold',
     color: colors.surface,
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 50,
   },
   changeAvatarButton: {
     position: 'absolute',

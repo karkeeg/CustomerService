@@ -12,19 +12,87 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import AuthInput from '../../components/AuthInput';
 import Button from '../../components/Button';
 import LoadingScreen from '../../components/LoadingScreen';
 import colors from '../../constants/colors';
 import useAuthStore from '../../store/authStore';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import config from '../../constants/config';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen({ navigation }) {
   const login = useAuthStore((state) => state.login);
+  const googleLogin = useAuthStore((state) => state.googleLogin);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    androidClientId: config.GOOGLE_CLIENT_ID,
+    iosClientId: config.GOOGLE_CLIENT_ID,
+    webClientId: config.GOOGLE_CLIENT_ID,
+    redirectUri: Google.makeRedirectUri({
+      scheme: 'customer-service',
+    }),
+  });
+
+  React.useEffect(() => {
+    if (request) {
+      console.log('Redirect URI:', request.redirectUri);
+    }
+  }, [request]);
+
+  React.useEffect(() => {
+    if (response?.type === 'success') {
+      const { authentication } = response;
+      handleGoogleLogin(authentication);
+    }
+  }, [response]);
+
+  const handleGoogleLogin = async (authentication) => {
+    setLoading(true);
+    try {
+      if (authentication.idToken) {
+        // High security: Send ID Token to backend for verification
+        const result = await googleLogin({
+          idToken: authentication.idToken,
+          role: 'consumer',
+        });
+
+        if (!result.success) {
+          Alert.alert('Google Login Failed', result.error || 'An error occurred');
+        }
+      } else {
+        // Fallback: Fetch user info using accessToken (less secure)
+        const res = await fetch('https://www.googleapis.com/userinfo/v2/me', {
+          headers: { Authorization: `Bearer ${authentication.accessToken}` },
+        });
+        const googleUser = await res.json();
+
+        const result = await googleLogin({
+          email: googleUser.email,
+          username: googleUser.name,
+          googleId: googleUser.id,
+          profileImage: googleUser.picture,
+          role: 'consumer',
+        });
+
+        if (!result.success) {
+          Alert.alert('Google Login Failed', result.error || 'An error occurred');
+        }
+      }
+    } catch (error) {
+      console.error('Google Login Error:', error);
+      Alert.alert('Google Login Failed', 'An error occurred during Google sign in');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Validate form
   const validate = () => {
@@ -136,6 +204,15 @@ export default function LoginScreen({ navigation }) {
           </View>
 
           <TouchableOpacity
+            style={styles.googleButton}
+            onPress={() => promptAsync()}
+            disabled={!request || loading}
+          >
+            <MaterialCommunityIcons name="google" size={24} color="#DB4437" />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.signupContainer}
             onPress={() => navigation.navigate('Signup')}
           >
@@ -234,5 +311,22 @@ const styles = StyleSheet.create({
   signupLink: {
     color: colors.secondary,
     fontWeight: 'bold',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  googleButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

@@ -2,9 +2,10 @@
   "expo": {
     "name": "Customer Service",
     "slug": "customer-service",
+    "scheme": "customer-service",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -18,14 +19,22 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/logo.png",
         "backgroundColor": "#6366F1"
       },
       "package": "com.customerservice.app",
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/logo.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "212b9f85-9d94-4edb-b7b5-bfb778ed1dec"
+      }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }
