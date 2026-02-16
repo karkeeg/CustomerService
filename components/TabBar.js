@@ -4,14 +4,39 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import colors from '../constants/colors';
 
-export default function TabBar({ activeTab, onTabChange }) {
-  const tabs = [
-    { id: 'services', label: 'Services', icon: 'briefcase-outline' },
-    { id: 'requests', label: 'Requests', icon: 'file-document-multiple-outline' },
-    { id: 'home', label: 'Home', icon: 'home', isCenter: true },
-    { id: 'analytics', label: 'Analytics', icon: 'chart-line' },
-    { id: 'profile', label: 'Profile', icon: 'account-outline' },
-  ];
+export default function TabBar({ activeTab, onTabChange, role = 'provider' }) {
+  const getTabsForRole = () => {
+    switch (role) {
+      case 'admin':
+        return [
+          { id: 'users', label: 'Users', icon: 'account-group-outline' },
+          { id: 'services', label: 'Services', icon: 'briefcase-outline' },
+          { id: 'categories', label: 'Categories', icon: 'folder-multiple-outline' },
+          { id: 'home', label: 'Home', icon: 'view-dashboard-outline', isCenter: true },
+          { id: 'approvals', label: 'Approvals', icon: 'shield-check-outline' },
+          { id: 'profile', label: 'Profile', icon: 'account-outline' },
+        ];
+      case 'consumer':
+        return [
+          { id: 'home', label: 'Home', icon: 'home-outline' },
+          { id: 'explore', label: 'Explore', icon: 'magnify' },
+          { id: 'dashboard', label: 'Dashboard', icon: 'view-grid-outline', isCenter: true },
+          { id: 'requests', label: 'Requests', icon: 'file-document-outline' },
+          { id: 'profile', label: 'Profile', icon: 'account-outline' },
+        ];
+      case 'provider':
+      default:
+        return [
+          { id: 'services', label: 'Services', icon: 'briefcase-outline' },
+          { id: 'requests', label: 'Requests', icon: 'file-document-multiple-outline' },
+          { id: 'home', label: 'Home', icon: 'home', isCenter: true },
+          { id: 'analytics', label: 'Analytics', icon: 'chart-line' },
+          { id: 'profile', label: 'Profile', icon: 'account-outline' },
+        ];
+    }
+  };
+
+  const tabs = getTabsForRole();
 
   return (
     <View style={styles.container}>

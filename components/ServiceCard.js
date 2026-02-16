@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../constants/colors';
@@ -9,6 +9,8 @@ import colors from '../constants/colors';
  * Displays a service with premium design
  */
 export default function ServiceCard({ service, onPress, showProvider = true }) {
+  const hasImage = service.images && service.images.length > 0;
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
       <View style={styles.card}>
@@ -20,11 +22,15 @@ export default function ServiceCard({ service, onPress, showProvider = true }) {
         >
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <MaterialCommunityIcons 
-                name="briefcase-outline" 
-                size={24} 
-                color={colors.primary} 
-              />
+              {hasImage ? (
+                <Image source={{ uri: service.images[0] }} style={styles.serviceThumbnail} />
+              ) : (
+                <MaterialCommunityIcons 
+                  name="briefcase-outline" 
+                  size={24} 
+                  color={colors.primary} 
+                />
+              )}
             </View>
             <View style={styles.headerText}>
               <Text style={styles.title} numberOfLines={1}>
@@ -100,6 +106,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  serviceThumbnail: {
+    width: '100%',
+    height: '100%',
   },
   headerText: {
     flex: 1,

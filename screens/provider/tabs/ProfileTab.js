@@ -1,19 +1,69 @@
-import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Alert, 
+  RefreshControl,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import mediaService from '../../../services/mediaService';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import colors from '../../../constants/colors';
 import useAuthStore from '../../../store/authStore';
+import React from 'react';
 
 export default function ProfileTab({ navigation }) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, refreshUser, updateProfileImage } = useAuthStore();
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [uploading, setUploading] = React.useState(false);
+
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    await refreshUser();
+    setRefreshing(false);
+  }, [refreshUser]);
+
+  const handleImagePick = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need camera roll permissions to upload profile pictures.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images',
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled) {
+      setUploading(true);
+      try {
+        const uploadResult = await mediaService.uploadSingle(result.assets[0].uri);
+        const updateResult = await updateProfileImage(uploadResult.url);
+        
+        if (updateResult.success) {
+          Alert.alert('Success', 'Profile picture updated successfully');
+        } else {
+          Alert.alert('Error', updateResult.error || 'Failed to update profile');
+        }
+      } catch (error) {
+        Alert.alert('Error', error.toString());
+      } finally {
+        setUploading(false);
+      }
+    }
+  };
+
+  React.useEffect(() => {
+    refreshUser();
+  }, [refreshUser]);
 
   const handleLogout = () => {
     Alert.alert(
@@ -64,17 +114,37 @@ export default function ProfileTab({ navigation }) {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+      }
+    >
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <LinearGradient
-          colors={[colors.primary, colors.secondary]}
-          style={styles.avatar}
-        >
-          <Text style={styles.avatarText}>
-            {user?.user?.charAt(0).toUpperCase() || 'P'}
-          </Text>
-        </LinearGradient>
+        <TouchableOpacity style={styles.avatarContainer} onPress={handleImagePick} disabled={uploading}>
+          <LinearGradient
+            colors={[colors.primary, colors.secondary]}
+            style={styles.avatar}
+          >
+            {user?.profileImage ? (
+              <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>
+                {user?.user?.charAt(0).toUpperCase() || 'P'}
+              </Text>
+            )}
+            {uploading && (
+              <View style={styles.uploadOverlay}>
+                <ActivityIndicator color={colors.surface} />
+              </View>
+            )}
+          </LinearGradient>
+          <View style={styles.editBadge}>
+            <MaterialCommunityIcons name="camera" size={16} color={colors.surface} />
+          </View>
+        </TouchableOpacity>
         <Text style={styles.name}>{user?.user || 'Provider'}</Text>
         <Text style={styles.email}>{user?.email || 'provider@example.com'}</Text>
         
@@ -181,12 +251,40 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 6,
+    overflow: 'hidden',
+  },
+  avatarContainer: {
+    marginBottom: 16,
+    position: 'relative',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: colors.primary,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: colors.background,
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarText: {
     fontSize: 40,

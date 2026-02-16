@@ -1,6 +1,8 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
-config.js
+# sensitive configuration
+constants/config.js
+
 # dependencies
 node_modules/
 

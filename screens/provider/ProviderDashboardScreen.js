@@ -3,7 +3,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import useAuthStore from '../../store/authStore';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import colors from '../../constants/colors';
-import ProviderHeader from '../../components/ProviderHeader';
+import AppHeader from '../../components/AppHeader';
 import TabBar from '../../components/TabBar';
 import HomeTab from './tabs/HomeTab';
 import ServicesTab from './tabs/ServicesTab';
@@ -13,7 +13,6 @@ import ProfileTab from './tabs/ProfileTab';
 
 export default function ProviderDashboardScreen({ navigation }) {
   const [activeTab, setActiveTab] = useState('home');
-  const [notificationCount] = useState(3); // TODO: Connect to real notification system
 
   const getTabTitle = () => {
     switch (activeTab) {
@@ -49,18 +48,13 @@ export default function ProviderDashboardScreen({ navigation }) {
     }
   };
 
-  const handleNotificationPress = () => {
-    // TODO: Navigate to notifications screen
-    console.log('Notifications pressed');
-  };
+
 
   return (
 
     <View style={styles.container}>
-      <ProviderHeader
+      <AppHeader
         title={getTabTitle()}
-        onNotificationPress={handleNotificationPress}
-        notificationCount={notificationCount}
       />
       
       <View style={styles.content}>

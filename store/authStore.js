@@ -68,6 +68,27 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
+   * Google Login action
+   * @param {Object} googleData - Data from Google OAuth
+   */
+  googleLogin: async (googleData) => {
+    try {
+      const response = await authService.googleLogin(googleData);
+      
+      // Update store state
+      set({
+        token: response.token,
+        user: response.user,
+        isAuthenticated: true,
+      });
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
+    }
+  },
+
+  /**
    * Logout action
    * Clears state and AsyncStorage
    */
@@ -94,14 +115,38 @@ const useAuthStore = create((set, get) => ({
    * @param {Object} userData - Updated user data
    */
   updateUser: async (userData) => {
+    const { user } = get();
+    if (!user) return { success: false, error: 'User not found' };
+
     try {
-      const updatedUser = { ...get().user, ...userData };
+      // Logic for EditProfileScreen fields
+      const dataToUpdate = {};
+      if (userData.user) dataToUpdate.username = userData.user;
+      if (userData.email) dataToUpdate.email = userData.email;
+      
+      const response = await authService.updateUser(user._id, dataToUpdate);
+      
+      const updatedUser = { ...user, ...response.user };
       await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
       
       set({ user: updatedUser });
       return { success: true };
     } catch (error) {
       console.error('Update user error:', error);
+      return { success: false, error };
+    }
+  },
+
+  /**
+   * Refresh user data from server
+   */
+  refreshUser: async () => {
+    try {
+      const freshUser = await authService.getProfile();
+      set({ user: freshUser });
+      return { success: true, user: freshUser };
+    } catch (error) {
+      console.error('Refresh user error:', error);
       return { success: false, error };
     }
   },
@@ -128,6 +173,28 @@ const useAuthStore = create((set, get) => ({
    */
   getToken: () => {
     return get().token;
+  },
+  /**
+   * Update user profile image
+   * @param {string} imageUrl - URL of the uploaded image
+   */
+  updateProfileImage: async (imageUrl) => {
+    const { user, token } = get();
+    if (!user) return { success: false, error: 'User not found' };
+
+    try {
+      const response = await authService.updateUser(user._id, { profileImage: imageUrl });
+      
+      // Update state and storage
+      const updatedUser = { ...user, profileImage: imageUrl };
+      set({ user: updatedUser });
+      await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating profile image:', error);
+      return { success: false, error };
+    }
   },
 }));
 
